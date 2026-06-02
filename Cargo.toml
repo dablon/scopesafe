@@ -1,0 +1,42 @@
+[package]
+name = "scopesafe"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nicolas Alcaraz <nicolasalca@hotmail.com>"]
+description = "AI Agent Scope Guardrail — define scope, track changes, audit results"
+license = "MIT"
+repository = "https://github.com/dablon/scopesafe"
+keywords = ["ai", "agent", "scope", "guardrail", "mcp", "claude-code", "cursor"]
+rust-version = "1.75"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+glob = "0.3"
+ignore = "0.4"
+anyhow = "1.0"
+thiserror = "2.0"
+indicatif = "0.17"
+colored = "2.0"
+dirs = "5.0"
+walkdir = "2.4"
+
+[dev-dependencies]
+tempfile = "3.12"
+pretty_assertions = "1.4"
+mockall = "0.13"
+
+[[bin]]
+name = "scopesafe"
+path = "src/main.rs"
+
+[lib]
+name = "scopesafe"
+path = "src/lib.rs"
+
+[[test]]
+name = "scope_test"
+path = "tests/unit/scope_test.rs"
