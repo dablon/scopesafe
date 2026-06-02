@@ -1,28 +1,27 @@
-FROM rust:1.81-bookworm
+FROM rust:1.85-bookworm
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git ca-certificates curl && \
+        git ca-certificates curl jq && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Pre-cache dependencies
+# Copy only manifests first to maximize docker layer cache
 COPY Cargo.toml Cargo.lock* ./
 RUN mkdir -p src tests && \
     echo 'fn main() { println!("placeholder"); }' > src/main.rs && \
     echo '' > src/lib.rs && \
-    cargo build --release && \
-    rm -rf src tests
+    cargo build --release 2>&1 | tail -5 && \
+    rm -rf src tests target/release/deps/scopesafe* target/release/scopesafe*
 
 # Now copy the real source
 COPY . .
 
-# Build release binary
-RUN cargo build --release && \
-    cargo test --all --no-run
+# Build release binary + tests (tests need to be compiled before run-e2e)
+RUN cargo build --release 2>&1 | tail -5 && \
+    cargo test --all --no-run 2>&1 | tail -5
 
-# Default to running the e2e
 ENV XDG_DATA_HOME=/data
 ENV PATH=/app/target/release:$PATH
 

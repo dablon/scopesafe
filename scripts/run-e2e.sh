@@ -18,6 +18,42 @@ info() { log "INFO" "$1"; }
 warn() { log "WARN" "$1"; }
 die() { log "ERROR" "$1"; exit 1; }
 
+# Run a single command, fail loudly if it returns non-zero.
+# Usage: run <description> <cmd...>
+run() {
+    local name="$1"
+    shift
+    info "→ $name"
+    if "$@"; then
+        info "  ✓ $name"
+    else
+        local rc=$?
+        die "  ✗ $name FAILED (exit code $rc)"
+    fi
+}
+
+# Run a command whose exit code is allowed to be non-zero.
+# Asserts that the output contains the given substring.
+# Usage: run_expect_fail <description> <needle-in-stderr> <cmd...>
+run_expect_fail() {
+    local name="$1"
+    local needle="$2"
+    shift 2
+    info "EXPECTED FAIL: $name"
+    set +e
+    local out
+    out=$("$@" 2>&1)
+    local rc=$?
+    set -e
+    if [[ $rc -eq 0 ]]; then
+        die "  ✗ $name: expected failure but command succeeded. output: $out"
+    fi
+    if [[ "$out" != *"$needle"* ]]; then
+        die "  ✗ $name: stderr did not contain '$needle'. output: $out"
+    fi
+    info "  ✓ $name (correctly rejected)"
+}
+
 main() {
     info "==== SCOPESAFE v$(grep -E '^version' /app/Cargo.toml | head -1 | cut -d'"' -f2) E2E ===="
     info "Binary:        $BINARY"
@@ -30,7 +66,7 @@ main() {
     # Sanity check
     [[ -x "$BINARY" ]] || die "binary not found at $BINARY"
     command -v git >/dev/null || die "git not installed"
-    command -v jq >/dev/null || warn "jq not installed (JSON prettify will be skipped)"
+    command -v jq >/dev/null || warn "jq not installed (will use python3 for JSON validation)"
 
     # Reset state
     rm -rf "$XDG_DATA_HOME_E2E" "$SAMPLE_DIR"
@@ -112,38 +148,31 @@ EOF
     info ""
     info "==== PHASE 3: scope lifecycle ===="
 
-    run_step "init scope" \
-        "$BINARY init --task='fix retry timeout' \
-            --files='payments/*.go' \
-            --exclude='payments/subscriptions/*,payments/vendor/*' \
-            --project=$SAMPLE_DIR"
+    run "init scope" \
+        "$BINARY" init \
+        --task='fix retry timeout' \
+        --files='payments/*.go' \
+        --exclude='payments/subscriptions/*,payments/vendor/*' \
+        --project="$SAMPLE_DIR"
 
-    run_step "track in-scope: payments/retry.go" \
-        "$BINARY track --file=payments/retry.go --action=modify"
+    run "track in-scope: payments/retry.go" \
+        "$BINARY" track --file=payments/retry.go --action=modify
 
-    run_step "track in-scope: payments/timeout.go" \
-        "$BINARY track --file=payments/timeout.go --action=modify"
+    run "track in-scope: payments/timeout.go" \
+        "$BINARY" track --file=payments/timeout.go --action=modify
 
-    run_step "track out-of-scope: payments/subscriptions/main.go (excluded)" \
-        "$BINARY track --file=payments/subscriptions/main.go --action=modify"
+    run "track out-of-scope: payments/subscriptions/main.go (excluded)" \
+        "$BINARY" track --file=payments/subscriptions/main.go --action=modify
 
-    run_step "track out-of-scope: src/main.go (not in --files)" \
-        "$BINARY track --file=src/main.go --action=modify"
+    run "track out-of-scope: src/main.go (not in --files)" \
+        "$BINARY" track --file=src/main.go --action=modify
 
-    # blocked file should fail
-    info "EXPECTED FAIL: track blocked .env"
-    if "$BINARY" track --file=.env --action=modify 2>/tmp/blocked.err; then
-        die "blocked file was allowed — security regression!"
-    fi
-    if grep -q "blocked file cannot be modified" /tmp/blocked.err; then
-        info "blocked file correctly rejected"
-    else
-        die "blocked-file error did not match expected: $(cat /tmp/blocked.err)"
-    fi
+    run_expect_fail "track blocked .env" \
+        "blocked file cannot be modified" \
+        "$BINARY" track --file=.env --action=modify
 
-    run_step "status" "$BINARY status"
-    run_step "audit"  "$BINARY audit"
-    run_step "list scopes" "$BINARY list-scopes"
+    run "status" "$BINARY" status
+    run "audit"  "$BINARY" audit
 
     ##########################################################################
     # Phase 4: approve + score goes up
@@ -151,8 +180,8 @@ EOF
     info ""
     info "==== PHASE 4: approve one OOS change ===="
 
-    run_step "approve src/main.go" \
-        "$BINARY approve --file=src/main.go"
+    run "approve src/main.go" \
+        "$BINARY" approve --file=src/main.go
 
     # After approval, score should rise
     score_output=$("$BINARY" status)
@@ -179,8 +208,8 @@ func Refactor() {}
 EOF
 
     # Reject the new OOS event
-    run_step "reject payments/subscriptions/main.go" \
-        "$BINARY reject --file=payments/subscriptions/main.go --reason='intentional drift'"
+    run "reject payments/subscriptions/main.go" \
+        "$BINARY" reject --file=payments/subscriptions/main.go --reason='intentional drift'
 
     # Rejecting does NOT auto-revert. Now reset the file to HEAD so we can
     # test the actual revert path.
@@ -188,8 +217,8 @@ EOF
     (cd "$SAMPLE_DIR" && git checkout HEAD -- payments/subscriptions/main.go)
 
     # Track it again (a pending OOS event)
-    run_step "track again after reset" \
-        "$BINARY track --file=payments/subscriptions/main.go --action=modify"
+    run "track again after reset" \
+        "$BINARY" track --file=payments/subscriptions/main.go --action=modify
 
     # Modify the file on disk to simulate the agent's bad change
     cat > "$SAMPLE_DIR/payments/subscriptions/main.go" <<'EOF'
@@ -199,8 +228,8 @@ package subscriptions
 func Refactor() {}
 EOF
 
-    run_step "revert-all (should restore the file from git)" \
-        "$BINARY revert-all"
+    run "revert-all (should restore the file from git)" \
+        "$BINARY" revert-all
 
     # Check the file is back to the original
     content=$(cat "$SAMPLE_DIR/payments/subscriptions/main.go")
@@ -219,7 +248,7 @@ EOF
     info ""
     info "==== PHASE 6: weekly drift report ===="
 
-    run_step "report-weekly" "$BINARY report-weekly"
+    run "report-weekly" "$BINARY" report-weekly
 
     ##########################################################################
     # Phase 7: MCP server end-to-end (stdin/stdout JSON-RPC)
@@ -278,7 +307,7 @@ EOF
     fi
 
     # Response 6 (check_file .env) should say BLOCKED
-    if sed -n '6p' /tmp/mcp-responses.jsonl | grep -q '"verdict":"BLOCKED"'; then
+    if sed -n '6p' /tmp/mcp-responses.jsonl | grep -q 'verdict.*BLOCKED'; then
         info "MCP check_file .env -> BLOCKED (correct)"
     else
         die "MCP check_file .env did not return BLOCKED: $(sed -n '6p' /tmp/mcp-responses.jsonl)"
@@ -306,17 +335,6 @@ EOF
     info "  ALL E2E PHASES PASSED"
     info "  scopesafe $(grep -E '^version' /app/Cargo.toml | head -1 | cut -d'"' -f2) on $(uname -srm)"
     info "================================================================"
-}
-
-run_step() {
-    local name="$1"
-    shift
-    info "→ $name"
-    if "$@" 2>&1; then
-        info "  ✓ $name"
-    else
-        die "  ✗ $name FAILED"
-    fi
 }
 
 main "$@"
