@@ -2,6 +2,7 @@ pub mod auditor;
 pub mod cli;
 pub mod db;
 pub mod error;
+pub mod mcp;
 pub mod patterns;
 pub mod report;
 pub mod scope;

@@ -1,4 +1,5 @@
 use crate::auditor::{Auditor, ScopeStatus};
+use crate::mcp::McpServer;
 use crate::patterns::PatternAnalyzer;
 use crate::report::ReportGenerator;
 use crate::scope::Scope;
@@ -70,7 +71,11 @@ pub enum Commands {
     /// Generate a weekly drift report
     ReportWeekly,
     /// Run as MCP server
-    Mcp,
+    Mcp {
+        /// Project root path (defaults to current directory)
+        #[arg(short, long)]
+        project: Option<PathBuf>,
+    },
 }
 
 impl Cli {
@@ -156,18 +161,22 @@ impl Cli {
                 Ok(())
             }
             Commands::ReportWeekly => {
-                let tracker = Tracker::new()?;
                 let patterns = PatternAnalyzer::new()?;
                 let report = ReportGenerator::new()?;
 
-                let weekly = report.generate_weekly(&tracker, &patterns)?;
+                let weekly = report.generate_weekly(&patterns)?;
                 weekly.print();
 
                 Ok(())
             }
-            Commands::Mcp => {
-                // MCP server mode — future v1.0
-                anyhow::bail!("MCP server mode coming in v1.0")
+            Commands::Mcp { project } => {
+                let project = project
+                    .clone()
+                    .unwrap_or_else(|| std::path::PathBuf::from("."))
+                    .canonicalize()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let server = McpServer::new(project)?;
+                server.run()
             }
         }
     }

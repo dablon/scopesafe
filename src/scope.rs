@@ -59,7 +59,13 @@ impl Scope {
         exclude: Option<String>,
         project: Option<PathBuf>,
     ) -> Result<Self> {
-        let project = project.unwrap_or_else(|| PathBuf::from("."));
+        // Resolve project to an absolute path. If the user gave us a relative
+        // path, anchor it to the current working directory so that subsequent
+        // git operations work from any invocation point.
+        let project = match project {
+            Some(p) => p.canonicalize().unwrap_or(p),
+            None => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+        };
         let owner = whoami::username();
 
         if let Some(ref f) = files {
@@ -73,7 +79,7 @@ impl Scope {
             }
         }
 
-        let id = format!("scope-{}", uuid_simple());
+        let id = format!("scope-{}", uuid::Uuid::new_v4().simple());
         let created_at = Utc::now();
 
         Ok(Self {
@@ -183,15 +189,6 @@ impl Scope {
         }
         false
     }
-}
-
-fn uuid_simple() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    format!("{:x}", now)
 }
 
 mod whoami {

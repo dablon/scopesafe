@@ -1,6 +1,6 @@
 [package]
 name = "scopesafe"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Nicolas Alcaraz <nicolasalca@hotmail.com>"]
 description = "AI Agent Scope Guardrail — define scope, track changes, audit results"
@@ -23,11 +23,14 @@ indicatif = "0.17"
 colored = "2.0"
 dirs = "5.0"
 walkdir = "2.4"
+uuid = { version = "1.10", features = ["v4"] }
 
 [dev-dependencies]
 tempfile = "3.12"
 pretty_assertions = "1.4"
 mockall = "0.13"
+assert_cmd = "2.0"
+predicates = "3.1"
 
 [[bin]]
 name = "scopesafe"
@@ -40,3 +43,27 @@ path = "src/lib.rs"
 [[test]]
 name = "scope_test"
 path = "tests/unit/scope_test.rs"
+
+[[test]]
+name = "tracker_test"
+path = "tests/unit/tracker_test.rs"
+
+[[test]]
+name = "patterns_test"
+path = "tests/unit/patterns_test.rs"
+
+[[test]]
+name = "report_test"
+path = "tests/unit/report_test.rs"
+
+[[test]]
+name = "mcp_test"
+path = "tests/unit/mcp_test.rs"
+
+[[test]]
+name = "cli_e2e_test"
+path = "tests/integration/cli_e2e_test.rs"
+
+[[test]]
+name = "mcp_e2e_test"
+path = "tests/integration/mcp_e2e_test.rs"

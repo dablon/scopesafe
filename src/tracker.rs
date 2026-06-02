@@ -20,7 +20,7 @@ pub struct FileEvent {
 }
 
 pub struct Tracker {
-    db: Database,
+    pub db: Database,
 }
 
 impl Tracker {

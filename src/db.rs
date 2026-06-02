@@ -3,7 +3,7 @@ use crate::scope::{Scope, ScopeStatus};
 use crate::tracker::FileEvent;
 use anyhow::Result;
 use rusqlite::{params, Connection};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct Database {
     conn: Connection,
@@ -19,6 +19,18 @@ impl Database {
         }
 
         let conn = Connection::open(&db_path)?;
+        let db = Self { conn };
+        db.init_schema()?;
+        Ok(db)
+    }
+
+    /// Open a database at a specific path. Used by tests to isolate state.
+    #[allow(dead_code)]
+    pub fn open_at(path: &Path) -> Result<Self> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let conn = Connection::open(path)?;
         let db = Self { conn };
         db.init_schema()?;
         Ok(db)
@@ -209,6 +221,84 @@ impl Database {
             [scope_id],
         )?;
         Ok(())
+    }
+
+    /// List all scopes in the database, newest first.
+    pub fn list_all_scopes(&self) -> Result<Vec<Scope>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, task, files, exclude, project, created_at, owner, status
+             FROM scopes ORDER BY created_at DESC",
+        )?;
+        let scopes = stmt
+            .query_map([], |row| {
+                let project_str: String = row.get(4)?;
+                let status_str: String = row.get(7)?;
+                let status = match status_str.as_str() {
+                    "Completed" => ScopeStatus::Completed,
+                    "Cancelled" => ScopeStatus::Cancelled,
+                    _ => ScopeStatus::Active,
+                };
+                Ok(Scope {
+                    id: row.get(0)?,
+                    task: row.get(1)?,
+                    files: row.get(2)?,
+                    exclude: row.get(3)?,
+                    project: PathBuf::from(project_str),
+                    created_at: chrono::DateTime::parse_from_rfc3339(
+                        &row.get::<_, String>(5)?,
+                    )
+                    .unwrap_or_else(|_| chrono::Utc::now().into())
+                    .with_timezone(&chrono::Utc),
+                    owner: row.get(6)?,
+                    status,
+                })
+            })?
+            .map(|r| r.map_err(|e| anyhow::anyhow!(e)))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(scopes)
+    }
+
+    /// List scopes created within `[start, end)`.
+    pub fn list_scopes_in_window(
+        &self,
+        start: chrono::DateTime<chrono::Utc>,
+        end: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<Scope>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, task, files, exclude, project, created_at, owner, status
+             FROM scopes WHERE created_at >= ?1 AND created_at < ?2
+             ORDER BY created_at ASC",
+        )?;
+        let scopes = stmt
+            .query_map(
+                rusqlite::params![start.to_rfc3339(), end.to_rfc3339()],
+                |row| {
+                    let project_str: String = row.get(4)?;
+                    let status_str: String = row.get(7)?;
+                    let status = match status_str.as_str() {
+                        "Completed" => ScopeStatus::Completed,
+                        "Cancelled" => ScopeStatus::Cancelled,
+                        _ => ScopeStatus::Active,
+                    };
+                    Ok(Scope {
+                        id: row.get(0)?,
+                        task: row.get(1)?,
+                        files: row.get(2)?,
+                        exclude: row.get(3)?,
+                        project: PathBuf::from(project_str),
+                        created_at: chrono::DateTime::parse_from_rfc3339(
+                            &row.get::<_, String>(5)?,
+                        )
+                        .unwrap_or_else(|_| chrono::Utc::now().into())
+                        .with_timezone(&chrono::Utc),
+                        owner: row.get(6)?,
+                        status,
+                    })
+                },
+            )?
+            .map(|r| r.map_err(|e| anyhow::anyhow!(e)))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(scopes)
     }
 }
 

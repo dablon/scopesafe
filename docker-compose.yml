@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  scopesafe:
+    build: .
+    image: scopesafe-e2e:latest
+    container_name: scopesafe-e2e
+    environment:
+      - XDG_DATA_HOME=/data
+    volumes:
+      - ./scripts:/app/scripts:ro
+      - scopesafe-data:/data
+    working_dir: /app
+    command: ["bash", "/app/scripts/run-e2e.sh"]
+
+volumes:
+  scopesafe-data:
