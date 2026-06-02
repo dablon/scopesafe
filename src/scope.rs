@@ -112,8 +112,8 @@ impl Scope {
                 let pat = pat.trim();
 
                 // Special handling for dir/* patterns
-                if pat.ends_with("/*") {
-                    let dir = pat[..pat.len() - 2].to_string();
+                if let Some(stripped) = pat.strip_suffix("/*") {
+                    let dir = stripped.to_string();
                     let normalized_dir = dir.replace('\\', "/");
                     if file_path_clean.starts_with(&normalized_dir) {
                         return false;
@@ -175,7 +175,8 @@ impl Scope {
                     return true;
                 }
                 // Special case: id_rsa*, id_ed25519* should match if basename starts with id_rsa
-                if pat.ends_with('*') && basename.starts_with(&pat[..pat.len() - 1]) {
+                if pat.ends_with('*') && basename.starts_with(pat.strip_suffix('*').unwrap_or(pat))
+                {
                     return true;
                 }
             }

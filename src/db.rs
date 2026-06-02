@@ -26,7 +26,7 @@ impl Database {
 
     fn db_path() -> Result<PathBuf> {
         let base = dirs::data_local_dir()
-            .or_else(|| dirs::data_dir())
+            .or_else(dirs::data_dir)
             .unwrap_or_else(|| PathBuf::from("."));
         Ok(base.join("scopesafe").join("scopesafe.db"))
     }
@@ -202,6 +202,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn complete_scope(&self, scope_id: &str) -> Result<()> {
         self.conn.execute(
             "UPDATE scopes SET status = 'Completed' WHERE id = ?1",

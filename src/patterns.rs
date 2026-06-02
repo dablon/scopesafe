@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
 
 pub struct PatternAnalyzer {
     // In a full implementation, this would load historical data
@@ -10,6 +9,7 @@ impl PatternAnalyzer {
         Ok(Self {})
     }
 
+    #[allow(dead_code)]
     pub fn analyze_scope_violations(
         &self,
         _events: &[crate::tracker::FileEvent],
@@ -19,6 +19,8 @@ impl PatternAnalyzer {
     }
 }
 
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ViolationPattern {
     pub pattern: String,
     pub occurrences: usize,

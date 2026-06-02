@@ -1,5 +1,4 @@
 use crate::auditor::{Auditor, ScopeStatus};
-use crate::error::Error;
 use crate::patterns::PatternAnalyzer;
 use crate::report::ReportGenerator;
 use crate::scope::Scope;
@@ -106,7 +105,7 @@ impl Cli {
                 let in_scope = active_scope.is_file_in_scope(file);
                 let is_blocked = active_scope.is_blocked_file(file);
 
-                let event =
+                let _event =
                     tracker.track_file(&active_scope.id, file, action, in_scope, is_blocked)?;
 
                 if is_blocked {

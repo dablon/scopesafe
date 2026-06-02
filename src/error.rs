@@ -8,9 +8,11 @@ pub enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[allow(dead_code)]
     #[error("scope not found")]
     ScopeNotFound,
 
+    #[allow(dead_code)]
     #[error("scope already exists")]
     ScopeAlreadyExists,
 

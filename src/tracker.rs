@@ -80,6 +80,7 @@ impl Tracker {
         self.db.reject_file(file_path, reason)
     }
 
+    #[allow(dead_code)]
     pub fn complete_scope(&self, scope_id: &str) -> Result<()> {
         self.db.complete_scope(scope_id)
     }

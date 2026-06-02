@@ -1,4 +1,3 @@
-use crate::error::Error;
 use crate::scope::Scope;
 use crate::tracker::{FileEvent, Tracker};
 use anyhow::Result;
@@ -76,10 +75,9 @@ impl Auditor {
         if !blocked.is_empty() {
             println!();
             println!("{}", "BLOCKED FILES:".red().bold());
-            for (path, _) in &file_map {
-                let event = file_map.get(path).unwrap();
+            for (_path, event) in &file_map {
                 if event.is_blocked {
-                    println!("  {} {} [BLOCKED — secrets file]", "⛔".red(), path.red());
+                    println!("  {} {} [BLOCKED — secrets file]", "⛔".red(), _path.red());
                 }
             }
         }
