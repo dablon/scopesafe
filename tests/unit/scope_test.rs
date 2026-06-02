@@ -3,13 +3,7 @@ use std::path::PathBuf;
 
 #[test]
 fn test_scope_creation_basic() {
-    let scope = Scope::new(
-        "fix bug in payments".to_string(),
-        None,
-        None,
-        None,
-    )
-    .unwrap();
+    let scope = Scope::new("fix bug in payments".to_string(), None, None, None).unwrap();
 
     assert!(scope.id.starts_with("scope-"));
     assert_eq!(scope.task, "fix bug in payments");
@@ -35,12 +29,7 @@ fn test_scope_creation_with_patterns() {
 
 #[test]
 fn test_scope_creation_with_invalid_pattern() {
-    let result = Scope::new(
-        "test".to_string(),
-        Some("[invalid".to_string()),
-        None,
-        None,
-    );
+    let result = Scope::new("test".to_string(), Some("[invalid".to_string()), None, None);
 
     assert!(result.is_err());
 }

@@ -10,7 +10,10 @@ impl PatternAnalyzer {
         Ok(Self {})
     }
 
-    pub fn analyze_scope_violations(&self, _events: &[crate::tracker::FileEvent]) -> Vec<ViolationPattern> {
+    pub fn analyze_scope_violations(
+        &self,
+        _events: &[crate::tracker::FileEvent],
+    ) -> Vec<ViolationPattern> {
         // Placeholder: in v1.0 this would analyze actual patterns
         vec![]
     }

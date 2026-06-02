@@ -1,8 +1,8 @@
-pub mod scope;
-pub mod error;
-pub mod db;
-pub mod tracker;
 pub mod auditor;
+pub mod cli;
+pub mod db;
+pub mod error;
 pub mod patterns;
 pub mod report;
-pub mod cli;
+pub mod scope;
+pub mod tracker;

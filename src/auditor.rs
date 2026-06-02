@@ -31,13 +31,19 @@ impl Auditor {
 
         let total = events.len();
         let in_scope: Vec<_> = events.iter().filter(|e| e.in_scope).collect();
-        let out_of_scope: Vec<_> = events.iter().filter(|e| !e.in_scope && !e.is_blocked).collect();
+        let out_of_scope: Vec<_> = events
+            .iter()
+            .filter(|e| !e.in_scope && !e.is_blocked)
+            .collect();
         let blocked: Vec<_> = events.iter().filter(|e| e.is_blocked).collect();
 
         println!("\n{}", "═══ SCOPE AUDIT ═══".bold());
         println!("Task: {}", scope.task);
         println!("Scope ID: {}", scope.id);
-        println!("Created: {}", scope.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
+        println!(
+            "Created: {}",
+            scope.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+        );
         println!();
 
         // Group by file
@@ -126,7 +132,10 @@ impl ScopeStatus {
 
         let total_files = events.len();
         let in_scope_files = events.iter().filter(|e| e.in_scope).count();
-        let out_of_scope_files = events.iter().filter(|e| !e.in_scope && !e.is_blocked).count();
+        let out_of_scope_files = events
+            .iter()
+            .filter(|e| !e.in_scope && !e.is_blocked)
+            .count();
         let blocked_files = events.iter().filter(|e| e.is_blocked).count();
         let approved_files = events.iter().filter(|e| e.approved == Some(true)).count();
 
@@ -162,4 +171,3 @@ impl ScopeStatus {
         println!("  Scope score: {:.0}%", self.scope_score);
     }
 }
-

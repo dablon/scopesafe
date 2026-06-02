@@ -12,12 +12,12 @@ pub struct Database {
 impl Database {
     pub fn new() -> Result<Self> {
         let db_path = Self::db_path()?;
-        
+
         // Ensure parent directory exists
         if let Some(parent) = db_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let conn = Connection::open(&db_path)?;
         let db = Self { conn };
         db.init_schema()?;
@@ -61,7 +61,7 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_events_scope ON file_events(scope_id);
             CREATE INDEX IF NOT EXISTS idx_events_file ON file_events(file_path);
-            "
+            ",
         )?;
         Ok(())
     }
@@ -93,31 +93,33 @@ impl Database {
     pub fn get_active_scope(&self) -> Result<Scope> {
         let mut stmt = self.conn.prepare(
             "SELECT id, task, files, exclude, project, created_at, owner, status
-             FROM scopes WHERE status = 'Active' ORDER BY created_at DESC LIMIT 1"
+             FROM scopes WHERE status = 'Active' ORDER BY created_at DESC LIMIT 1",
         )?;
 
-        let scope = stmt.query_row([], |row| {
-            let project_str: String = row.get(4)?;
-            let status_str: String = row.get(7)?;
-            let status = match status_str.as_str() {
-                "Completed" => ScopeStatus::Completed,
-                "Cancelled" => ScopeStatus::Cancelled,
-                _ => ScopeStatus::Active,
-            };
+        let scope = stmt
+            .query_row([], |row| {
+                let project_str: String = row.get(4)?;
+                let status_str: String = row.get(7)?;
+                let status = match status_str.as_str() {
+                    "Completed" => ScopeStatus::Completed,
+                    "Cancelled" => ScopeStatus::Cancelled,
+                    _ => ScopeStatus::Active,
+                };
 
-            Ok(Scope {
-                id: row.get(0)?,
-                task: row.get(1)?,
-                files: row.get(2)?,
-                exclude: row.get(3)?,
-                project: PathBuf::from(project_str),
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
-                    .unwrap_or_else(|_| chrono::Utc::now().into())
-                    .with_timezone(&chrono::Utc),
-                owner: row.get(6)?,
-                status,
+                Ok(Scope {
+                    id: row.get(0)?,
+                    task: row.get(1)?,
+                    files: row.get(2)?,
+                    exclude: row.get(3)?,
+                    project: PathBuf::from(project_str),
+                    created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                        .unwrap_or_else(|_| chrono::Utc::now().into())
+                        .with_timezone(&chrono::Utc),
+                    owner: row.get(6)?,
+                    status,
+                })
             })
-        }).map_err(|_| Error::NoActiveScope)?;
+            .map_err(|_| Error::NoActiveScope)?;
 
         Ok(scope)
     }
@@ -140,7 +142,10 @@ impl Database {
         )?;
 
         let id = self.conn.last_insert_rowid();
-        Ok(FileEvent { id, ..event.clone() })
+        Ok(FileEvent {
+            id,
+            ..event.clone()
+        })
     }
 
     pub fn get_events(&self, scope_id: &str) -> Result<Vec<FileEvent>> {
@@ -167,9 +172,7 @@ impl Database {
             })
         })?;
 
-        let events: Result<Vec<_>> = events
-            .map(|r| r.map_err(|e| anyhow::anyhow!(e)))
-            .collect();
+        let events: Result<Vec<_>> = events.map(|r| r.map_err(|e| anyhow::anyhow!(e))).collect();
         events
     }
 

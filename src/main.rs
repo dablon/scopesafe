@@ -1,11 +1,11 @@
-mod cli;
-mod scope;
-mod tracker;
 mod auditor;
+mod cli;
 mod db;
 mod error;
 mod patterns;
 mod report;
+mod scope;
+mod tracker;
 
 use anyhow::Result;
 use clap::Parser;

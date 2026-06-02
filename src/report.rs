@@ -11,7 +11,11 @@ impl ReportGenerator {
         Ok(Self {})
     }
 
-    pub fn generate_weekly(&self, _tracker: &Tracker, _patterns: &PatternAnalyzer) -> Result<WeeklyReport> {
+    pub fn generate_weekly(
+        &self,
+        _tracker: &Tracker,
+        _patterns: &PatternAnalyzer,
+    ) -> Result<WeeklyReport> {
         // Placeholder — in v1.0 this would pull from actual historical data
         Ok(WeeklyReport {
             week_start: "2026-05-26".to_string(),
@@ -37,7 +41,7 @@ impl WeeklyReport {
         println!("Week: {}", self.week_start);
         println!("Total tasks tracked: {}", self.total_tasks);
         println!("Avg scope score: {:.0}%", self.avg_scope_score);
-        
+
         if !self.top_violations.is_empty() {
             println!();
             println!("{}", "TOP VIOLATIONS:".yellow().bold());

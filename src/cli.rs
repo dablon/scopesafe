@@ -77,7 +77,12 @@ pub enum Commands {
 impl Cli {
     pub fn execute(&self) -> Result<()> {
         match &self.command {
-            Commands::Init { task, files, exclude, project } => {
+            Commands::Init {
+                task,
+                files,
+                exclude,
+                project,
+            } => {
                 let scope = Scope::new(
                     task.clone(),
                     files.clone(),
@@ -101,13 +106,8 @@ impl Cli {
                 let in_scope = active_scope.is_file_in_scope(file);
                 let is_blocked = active_scope.is_blocked_file(file);
 
-                let event = tracker.track_file(
-                    &active_scope.id,
-                    file,
-                    action,
-                    in_scope,
-                    is_blocked,
-                )?;
+                let event =
+                    tracker.track_file(&active_scope.id, file, action, in_scope, is_blocked)?;
 
                 if is_blocked {
                     println!("⛔ BLOCKED: {} (secrets file)", file);
